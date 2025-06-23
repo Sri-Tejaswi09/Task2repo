@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz with API Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            padding: 5px;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #666;
+            flex: 1;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            text-align: center;
+        }
+
+        .question {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            font-size: 1.3em;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3);
+        }
+
+        .answers {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .answer-btn {
+            background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .answer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .answer-btn.incorrect {
+            background: linear-gradient(45deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .quiz-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .quiz-info {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .next-btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .next-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Carousel Styles */
+        .carousel-container {
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .carousel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .carousel-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            color: white;
+            padding: 30px 20px 20px;
+            text-align: center;
+        }
+
+        .carousel-caption h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .carousel-nav:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .carousel-nav.prev {
+            left: 20px;
+        }
+
+        .carousel-nav.next {
+            right: 20px;
+        }
+
+        .carousel-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active {
+            background: #667eea;
+            transform: scale(1.2);
+        }
+
+        /* API Data Styles */
+        .api-container {
+            text-align: center;
+        }
+
+        .api-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .api-btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .api-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .api-data {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .weather-card {
+            background: linear-gradient(45deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(116, 185, 255, 0.3);
+        }
+
+        .weather-card h3 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .weather-temp {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .joke-card {
+            background: linear-gradient(45deg, #fd79a8 0%, #fdcb6e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(253, 121, 168, 0.3);
+        }
+
+        .joke-text {
+            font-size: 1.3em;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .container { padding: 30px 20px; margin: 10px; }
+            .header h1 { font-size: 2em; }
+            .tabs { flex-direction: column; gap: 5px; }
+            .tab-button { padding: 12px 20px; font-size: 0.9em; }
+            .question { padding: 20px; font-size: 1.1em; }
+            .answer-btn { padding: 15px; font-size: 1em; }
+            .quiz-controls { flex-direction: column; gap: 15px; text-align: center; }
+            .carousel-slide img { height: 300px; }
+            .carousel-nav { width: 40px; height: 40px; font-size: 1.3em; }
+            .carousel-nav.prev { left: 10px; }
+            .carousel-nav.next { right: 10px; }
+            .api-controls { flex-direction: column; align-items: center; }
+            .api-btn { width: 100%; max-width: 250px; }
+        }
+
+        @media screen and (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 1.8em; }
+            .tab-button { padding: 10px 15px; font-size: 0.85em; }
+            .question { padding: 15px; font-size: 1em; }
+            .answer-btn { padding: 12px; font-size: 0.9em; }
+            .carousel-slide img { height: 250px; }
+            .carousel-caption { padding: 20px 15px 15px; }
+            .carousel-caption h3 { font-size: 1.2em; }
+            .weather-temp { font-size: 2.5em; }
+            .joke-text { font-size: 1.1em; }
+            .api-data { padding: 20px; }
+        }
+
+        @media screen and (max-width: 360px) {
+            .header h1 { font-size: 1.5em; }
+            .weather-temp { font-size: 2em; }
+            .carousel-slide img { height: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Advanced Web Development Demo</h1>
+            <p>Interactive Quiz • Image Carousel • API Integration</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('quiz', event)" aria-label="Show Interactive Quiz" role="tab" aria-selected="true">Interactive Quiz</button>
+            <button class="tab-button" onclick="showTab('carousel', event)" aria-label="Show Image Carousel" role="tab" aria-selected="false">Image Carousel</button>
+            <button class="tab-button" onclick="showTab('api', event)" aria-label="Show API Data" role="tab" aria-selected="false">API Data</button>
+        </div>
+
+        <div id="quiz" class="tab-content active">
+            <div class="quiz-container">
+                <div class="question" id="question" role="region" aria-live="polite">
+                    Loading quiz...
+                </div>
+                <div class="answers" id="answers"></div>
+                <div class="quiz-controls">
+                    <div class="quiz-info">
+                        <span>Question <span id="current-question">1</span> of <span id="total-questions">5</span></span>
+                        <br>
+                        <span>Score: <span id="score">0</span></span>
+                    </div>
+                    <button class="next-btn" id="next-btn" onclick="nextQuestion()" disabled aria-label="Next Question">Next Question</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="carousel" class="tab-content">
+            <div class="carousel-container">
+                <div class="carousel">
+                    <div class="carousel-track" id="carousel-track"></div>
+                    <button class="carousel-nav prev" onclick="prevSlide()" aria-label="Previous Slide">❮</button>
+                    <button class="carousel-nav next" onclick="nextSlide()" aria-label="Next Slide">❯</button>
+                </div>
+                <div class="carousel-indicators" id="carousel-indicators"></div>
+            </div>
+        </div>
+
+        <div id="api" class="tab-content">
+            <div class="api-container">
+                <div class="api-controls">
+                    <button class="api-btn" onclick="fetchWeather()">Get Weather</button>
+                    <button class="api-btn" onclick="fetchJoke()">Get Joke</button>
+                    <button class="api-btn" onclick="fetchQuote()">Get Quote</button>
+                </div>
+                <div class="api-data" id="api-data">
+                    <p>Click a button above to fetch data from different APIs!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quiz Data
+        const quizData = [
+            {
+                question: "What does CSS stand for?",
+                answers: ["Computer Style Sheets", "Creative Style Sheets", "Cascading Style Sheets", "Colorful Style Sheets"],
+                correct: 2
+            },
+            {
+                question: "Which HTML element is used for the largest heading?",
+                answers: ["<h6>", "<heading>", "<h1>", "<header>"],
+                correct: 2
+            },
+            {
+                question: "What is the correct way to declare a JavaScript variable?",
+                answers: ["var myVar;", "variable myVar;", "v myVar;", "declare myVar;"],
+                correct: 0
+            },
+            {
+                question: "Which CSS property is used to change the text color?",
+                answers: ["text-color", "font-color", "color", "text-style"],
+                correct: 2
+            },
+            {
+                question: "What does API stand for?",
+                answers: ["Application Programming Interface", "Advanced Programming Integration", "Automated Program Instruction", "Application Process Integration"],
+                correct: 0
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedAnswer = null;
+
+        // Carousel Data
+        const carouselImages = [
+            {
+                src: "https://picsum.photos/800/400?random=1",
+                title: "Beautiful Landscape",
+                description: "Stunning natural scenery captured in high definition"
+            },
+            {
+                src: "https://picsum.photos/800/400?random=2",
+                title: "Urban Architecture",
+                description: "Modern city skyline with impressive buildings"
+            },
+            {
+                src: "https://picsum.photos/800/400?random=3",
+                title: "Nature's Beauty",
+                description: "Peaceful forest scene with vibrant colors"
+            },
+            {
+                src: "https://picsum.photos/800/400?random=4",
+                title: "Ocean View",
+                description: "Serene ocean waves under a beautiful sunset"
+            },
+            {
+                src: "https://picsum.photos/800/400?random=5",
+                title: "Mountain Peak",
+                description: "Majestic mountain range covered in snow"
+            }
+        ];
+
+        let currentSlide = 0;
+        let isCarouselPaused = false;
+        let carouselInterval;
+
+        // Tab Management
+        function showTab(tabName, event) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            event.target.setAttribute('aria-selected', 'true');
+
+            if (tabName === 'quiz') {
+                loadQuizProgress();
+            } else if (tabName === 'carousel') {
+                initCarousel();
+            }
+        }
+
+        // Quiz Functions
+        function initQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedAnswer = null;
+            document.getElementById('total-questions').textContent = quizData.length;
+            loadQuestion();
+            saveQuizProgress();
+        }
+
+        function loadQuizProgress() {
+            score = parseInt(localStorage.getItem('quizScore') || 0);
+            currentQuestionIndex = parseInt(localStorage.getItem('currentQuestionIndex') || 0);
+            if (currentQuestionIndex >= quizData.length) {
+                showQuizResults();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function saveQuizProgress() {
+            localStorage.setItem('quizScore', score);
+            localStorage.setItem('currentQuestionIndex', currentQuestionIndex);
+        }
+
+        function loadQuestion() {
+            const question = quizData[currentQuestionIndex];
+            document.getElementById('question').textContent = question.question;
+            document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+            document.getElementById('score').textContent = score;
+
+            const answersContainer = document.getElementById('answers');
+            answersContainer.innerHTML = '';
+
+            question.answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn';
+                button.textContent = answer;
+                button.setAttribute('aria-label', `Answer: ${answer}`);
+                button.onclick = () => selectAnswer(index);
+                answersContainer.appendChild(button);
+            });
+
+            document.getElementById('next-btn').disabled = true;
+            selectedAnswer = null;
+        }
+
+        function selectAnswer(index) {
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            answerButtons.forEach(btn => {
+                btn.classList.remove('correct', 'incorrect');
+                btn.disabled = true;
+            });
+
+            answerButtons[currentQuestion.correct].classList.add('correct');
+
+            if (index !== currentQuestion.correct) {
+                answerButtons[index].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+
+            selectedAnswer = index;
+            document.getElementById('next-btn').disabled = false;
+            saveQuizProgress();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showQuizResults();
+            }
+            saveQuizProgress();
+        }
+
+        function showQuizResults() {
+            const percentage = Math.round((score / quizData.length) * 100);
+            document.getElementById('question').innerHTML = `
+                <h2>Quiz Complete!</h2>
+                <p>Your Score: ${score}/${quizData.length} (${percentage}%)</p>
+                <p>${percentage >= 70 ? 'Great job! 🎉' : 'Keep practicing! 📚'}</p>
+            `;
+            document.getElementById('answers').innerHTML = '';
+            document.getElementById('next-btn').textContent = 'Restart Quiz';
+            document.getElementById('next-btn').onclick = initQuiz;
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        // Carousel Functions
+        function initCarousel() {
+            const track = document.getElementById('carousel-track');
+            const indicators = document.getElementById('carousel-indicators');
+
+            track.innerHTML = '';
+            indicators.innerHTML = '';
+
+            carouselImages.forEach((image, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide';
+                slide.innerHTML = `
+                    <img src="${image.src}" alt="${image.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/800x400?text=Image+${index+1}'">
+                    <div class="carousel-caption">
+                        <h3>${image.title}</h3>
+                        <p>${image.description}</p>
+                    </div>
+                `;
+                track.appendChild(slide);
+
+                const indicator = document.createElement('div');
+                indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+                indicator.setAttribute('aria-label', `Go to slide ${index + 1}`);
+                indicator.onclick = () => goToSlide(index);
+                indicators.appendChild(indicator);
+            });
+
+            currentSlide = 0;
+            updateCarousel();
+
+            clearInterval(carouselInterval);
+            carouselInterval = setInterval(() => {
+                if (!isCarouselPaused && document.getElementById('carousel').classList.contains('active')) {
+                    nextSlide();
+                }
+            }, 5000);
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % carouselImages.length;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + carouselImages.length) % carouselImages.length;
+            updateCarousel();
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateCarousel();
+        }
+
+        function updateCarousel() {
+            const track = document.getElementById('carousel-track');
+            const indicators = document.querySelectorAll('.indicator');
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === currentSlide);
+            });
+        }
+
+        // API Functions
+        async function fetchWeather() {
+            const apiData = document.getElementById('api-data');
+            apiData.innerHTML = '<div class="loading"></div>';
+
+            try {
+                // Replace YOUR_API_KEY with a valid OpenWeatherMap API key
+                const response = await fetch('https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_API_KEY&units=metric');
+                if (!response.ok) {
+                    throw new Error('Weather API request failed');
+                }
+                const data = await response.json();
+                apiData.innerHTML = `
+                    <div class="weather-card">
+                        <h3>${data.name}</h3>
+                        <div class="weather-temp">${Math.round(data.main.temp)}°C</div>
+                        <p>${data.weather[0].description}</p>
+                        <p>Feels like ${Math.round(data.main.feels_like)}°C</p>
+                    </div>
+                `;
+            } catch (error) {
+                apiData.innerHTML = `
+                    <div class="weather-card">
+                        <p style="color: #e74c3c;">Failed to fetch weather data. Showing sample data.</p>
+                        <h3>London</h3>
+                        <div class="weather-temp">22°C</div>
+                        <p>Partly cloudy</p>
+                        <p>Feels like 25°C</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchJoke() {
+            const apiData = document.getElementById('api-data');
+            apiData.innerHTML = '<div class="loading"></div>';
+
+            try {
+                const response = await fetch('https://official-joke-api.appspot.com/random_joke');
+                if (!response.ok) {
+                    throw new Error('Joke API request failed');
+                }
+                const data = await response.json();
+                apiData.innerHTML = `
+                    <div class="joke-card">
+                        <div class="joke-text">
+                            <strong>Q:</strong> ${data.setup}<br><br>
+                            <strong>A:</strong> ${data.punchline}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                apiData.innerHTML = `
+                    <div class="joke-card">
+                        <div class="joke-text">
+                            <strong>Q:</strong> Why don't scientists trust atoms?<br><br>
+                            <strong>A:</strong> Because they make up everything!
+                        </div>
+                        <small>*Fallback joke - API temporarily unavailable</small>
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchQuote() {
+            const apiData = document.getElementById('api-data');
+            apiData.innerHTML = '<div class="loading"></div>';
+
+            try {
+                const response = await fetch('https://api.quotable.io/random');
+                if (!response.ok) {
+                    throw new Error('Quote API request failed');
+                }
+                const data = await response.json();
+                apiData.innerHTML = `
+                    <div class="api-data">
+                        <blockquote style="font-size: 1.3em; font-style: italic; margin-bottom: 20px; color: #555;">
+                            "${data.content}"
+                        </blockquote>
+                        <p style="font-weight: 600; color: #667eea;">— ${data.author}</p>
+                    </div>
+                `;
+            } catch (error) {
+                apiData.innerHTML = `
+                    <div class="api-data">
+                        <p style="color: #e74c3c;">Failed to fetch quote. Showing sample quote.</p>
+                        <blockquote style="font-size: 1.3em; font-style: italic; margin-bottom: 20px; color: #555;">
+                            "The only way to do great work is to love what you do."
+                        </blockquote>
+                        <p style="font-weight: 600; color: #667eea;">— Steve Jobs</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQuizProgress();
+        });
+    </script>
+</body>
+</html>
